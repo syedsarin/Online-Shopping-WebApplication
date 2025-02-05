@@ -56,7 +56,7 @@ The Customer module provides an intuitive shopping experience with the following
 ---
 
 ## **Technologies Used**
-- **Backend:** Java, Spring Boot, RESTful Web Services
+- **Backend:** Java, Spring Boot
 - **Frontend:** HTML, CSS, JavaScript, Thymeleaf
 - **Database:** MySQL
 - **Tools:** Maven, JUnit, Postman, Git, IntelliJ IDEA
