@@ -50,6 +50,12 @@ public class ProductServiceImp implements IProductService {
 
 	@Autowired
 	IProductRepository productRepository;
+	@Autowired
+	private ICartRepository cartRepository;
+
+	@Autowired
+	private IProductOrderRepository productOrderRepository;
+
 	
 	@Override
 	public Product saveProduct(Product product) {
