@@ -12,4 +12,7 @@ public interface IProductOrderRepository extends JpaRepository<ProductOrder, Int
 
 	ProductOrder findByOrderId(String orderId);
 
+	void deleteByProductId(Integer productId);
+
+
 }
