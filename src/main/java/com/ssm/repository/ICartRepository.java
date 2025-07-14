@@ -13,4 +13,12 @@ public interface ICartRepository extends JpaRepository<Cart, Integer> {
 	public Integer countByUserId(Integer userId);
 	
 	public List<Cart> findByUserId(Integer userId);
+
+	
+    // ✅ Add this method to remove cart entries referencing a product before deletion
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Cart c WHERE c.product.id = :productId")
+    void deleteByProductId(@Param("productId") Integer productId);
+
 }
