@@ -40,19 +40,25 @@ public class ProductServiceImp implements IProductService {
 		return findAll;
 	}
 
+	@Transactional
 	@Override
 	public Boolean deleteProduct(Integer id) {
-		
-	 Product product = productRepository.findById(id).orElse(null);
-		if(!ObjectUtils.isEmpty(product)) {
-			productRepository.delete(product);
-			return true;
-		}
-		else {
-		return false;
+	    Product product = productRepository.findById(id).orElse(null);
+	    if (!ObjectUtils.isEmpty(product)) {
+
+	        // 🧹 Step 1: Delete related cart entries
+	        cartRepository.deleteByProductId(id);
+
+	        // 🧹 Step 2: Delete related product_order entries
+	        productOrderRepository.deleteByProductId(id);
+
+	        // 🗑️ Step 3: Now delete product
+	        productRepository.delete(product);
+	        return true;
+	    }
+	    return false;
 	}
 
-}
 
 	@Override
 	public Product getProductById(Integer id) {
