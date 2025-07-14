@@ -1,4 +1,4 @@
-package com.ssm.service.impl:
+package com.ssm.service.impl;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
