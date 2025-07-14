@@ -99,41 +99,44 @@ public class ProductServiceImp implements IProductService {
 	}
 
 	@Override
-	public Product updateProduct(Product product, MultipartFile image) throws IOException {
-		
-		Product dbProduct = getProductById(product.getId());
-		String imageName= image.isEmpty() ? dbProduct.getImageName() : image.getOriginalFilename();	
-		
-		dbProduct.setProductTitle(product.getProductTitle());
-		dbProduct.setProductDescription(product.getProductDescription());
-		dbProduct.setProductCategory(product.getProductCategory());
-		dbProduct.setProductPrice(product.getProductPrice());
-		dbProduct.setStock(product.getStock());
-		dbProduct.setIsActive(product.getIsActive());
-		dbProduct.setImageName(imageName);
-		
-		dbProduct.setDiscount(product.getDiscount());
-		Double discount= product.getProductPrice()*(product.getDiscount()/100.0);
-		Double finalPrice = product.getProductPrice()-discount;
-		dbProduct.setDiscountPrice(finalPrice);
-		
-		Product updateProduct = productRepository.save(dbProduct);
-		if(!ObjectUtils.isEmpty(updateProduct))
-		{
-			if(!image.isEmpty()) {
-				File saveFile = new ClassPathResource("static/img").getFile();
+public Product updateProduct(Product product, MultipartFile image) throws IOException {
+    
+    Product dbProduct = getProductById(product.getId());
+    String imageName = image.isEmpty() ? dbProduct.getImageName() : image.getOriginalFilename();	
 
-				Path path = Paths.get(saveFile.getAbsolutePath() + File.separator + "product_img" + File.separator
-						+ image.getOriginalFilename());
-				System.out.println(path);
-				Files.copy(image.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+    dbProduct.setProductTitle(product.getProductTitle());
+    dbProduct.setProductDescription(product.getProductDescription());
+    dbProduct.setProductCategory(product.getProductCategory());
+    dbProduct.setProductPrice(product.getProductPrice());
+    dbProduct.setStock(product.getStock());
+    dbProduct.setIsActive(product.getIsActive());
+    dbProduct.setImageName(imageName);
+    
+    dbProduct.setDiscount(product.getDiscount());
+    Double discount = product.getProductPrice() * (product.getDiscount() / 100.0);
+    Double finalPrice = product.getProductPrice() - discount;
+    dbProduct.setDiscountPrice(finalPrice);
+    
+    Product updateProduct = productRepository.save(dbProduct);
 
-			}
-			return product;
-		}
-		
-		return null;
-	}
+    if (!ObjectUtils.isEmpty(updateProduct)) {
+        if (!image.isEmpty()) {
+            // ✅ External upload directory (not inside classpath)
+            String uploadDir = "uploads/product_img";
+            File dir = new File(uploadDir);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+
+            Path path = Paths.get(uploadDir, image.getOriginalFilename());
+            System.out.println("Saving file to: " + path);
+            Files.copy(image.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+        }
+        return dbProduct;
+    }
+
+    return null;
+}
 
 	@Override
 	public List<Product> getAllActiveProducts(String category) {
