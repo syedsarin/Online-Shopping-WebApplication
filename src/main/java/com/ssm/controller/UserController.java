@@ -12,11 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.ObjectUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ssm.entity.Cart;
@@ -24,10 +20,8 @@ import com.ssm.entity.Category;
 import com.ssm.entity.OrderRequest;
 import com.ssm.entity.ProductOrder;
 import com.ssm.entity.UserDetail;
-import com.ssm.service.ICartService;
-import com.ssm.service.ICategoryService;
-import com.ssm.service.IOrderService;
-import com.ssm.service.IUserDetailService;
+import com.ssm.service.*;
+
 import com.ssm.util.CommonUtil;
 import com.ssm.util.OrderStatus;
 
@@ -94,7 +88,7 @@ public class UserController {
 			Double totalOrderPrice = carts.get(carts.size() - 1).getTotalOrderPrice();
 			m.addAttribute("totalOrderPrice", totalOrderPrice);
 		}
-		return "/user/cart";
+		return "user/cart"; // ✅ Fixed path
 	}
 
 	@GetMapping("/cartQuantityUpdate")
@@ -119,7 +113,7 @@ public class UserController {
 			m.addAttribute("OrderPrice", orderPrice);
 			m.addAttribute("totalOrderPrice", totalOrderPrice);
 		}
-		return "/user/order";
+		return "user/order"; // ✅ Fixed path
 	}
 
 	@PostMapping("/save-order")
@@ -131,7 +125,7 @@ public class UserController {
 
 	@GetMapping("/success")
 	public String loadSuccess() {
-		return "/user/success";
+		return "user/success"; // ✅ Fixed path
 	}
 
 	@GetMapping("/user-orders")
@@ -139,7 +133,7 @@ public class UserController {
 		UserDetail loginUser = getLoggedInUserDetails(p);
 		List<ProductOrder> orders = orderService.getOrdersByUser(loginUser.getId());
 		map.put("orders", orders);
-		return "/user/my_orders";
+		return "user/my_orders"; // ✅ Fixed path
 	}
 
 	@GetMapping("/update-status")
@@ -157,16 +151,16 @@ public class UserController {
 		commonUtill.sendMailForProductOrder(updateOrder, status);
 
 		if (ObjectUtils.isEmpty(updateOrder)) {
-			session.setAttribute("successMsg", "Product Status Updated");
-		} else {
 			session.setAttribute("errorMsg", "Status Not Updated");
+		} else {
+			session.setAttribute("successMsg", "Product Status Updated");
 		}
 		return "redirect:/user/user-orders";
 	}
 
 	@GetMapping("/profile")
 	public String profile() {
-		return "/user/profile";
+		return "user/profile"; // ✅ Fixed path
 	}
 
 	@PostMapping("/update-Profile")
@@ -183,7 +177,7 @@ public class UserController {
 				String fileName = img.getOriginalFilename();
 				File filePath = new File(folder, fileName);
 				img.transferTo(filePath);
-				user.setProfileImage(fileName); // Save only name or full path as needed
+				user.setProfileImage(fileName);
 			}
 			UserDetail updatedUser = userService.updateUser(user);
 			if (ObjectUtils.isEmpty(updatedUser)) {
