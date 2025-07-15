@@ -341,7 +341,7 @@ public class AdminController {
 		map.put("userType", type);
 		map.put("users", users);
 		
-		return "/admin/users";
+		return "admin/users";
 		
 	}
 	
@@ -383,7 +383,7 @@ public class AdminController {
 		map.put("isFirst", page.isFirst());
 		map.put("isLast", page.isLast());
 		
-		return "/admin/orders";
+		return "admin/orders";
 		
 	}
 	
@@ -457,7 +457,7 @@ public class AdminController {
 			map.put("isLast", page.isLast());
 			
 		}
-		return"/admin/orders";
+		return"admin/orders";
 	}
 	
 	@GetMapping("/add_admin")
@@ -465,7 +465,7 @@ public class AdminController {
 		
 		
 		
-		return"/admin/add_admin";
+		return"admin/add_admin";
 	}
 	
 	
