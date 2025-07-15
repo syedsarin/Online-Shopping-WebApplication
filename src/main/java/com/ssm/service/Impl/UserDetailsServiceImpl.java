@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
@@ -23,193 +22,157 @@ import com.ssm.util.AppConstant;
 
 @Service
 public class UserDetailsServiceImpl implements IUserDetailService {
-	
-	@Autowired
-	UserDetailRepository userRepository;
-	
-	@Autowired
-	private PasswordEncoder passwordEncoder;
-	
-	@Override
-	public UserDetail saveUser(UserDetail user) {
-		
-		user.setRole("ROLE_USER");
-		user.setIsEnable(true);
-		user.setAccountNonLocked(true);
-		user.getFailedAttempt();
-		
-		String encodePassword = passwordEncoder.encode(user.getPassword());
-		user.setPassword(encodePassword);
-		UserDetail saveUser = userRepository.save(user);
-		
-		return saveUser;
-	}
 
-	@Override
-	public UserDetail getUserByEmail(String email) {
-		
-		return userRepository.findByEmail(email);
-	}
+    @Autowired
+    private UserDetailRepository userRepository;
 
-	@Override
-	public List<UserDetail> getUsers(String role) {
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-	List<UserDetail> findByRole = userRepository.findByRole(role);	
-	
-		return findByRole;
-	}
+    @Override
+    public UserDetail saveUser(UserDetail user) {
+        user.setRole("ROLE_USER");
+        user.setIsEnable(true);
+        user.setAccountNonLocked(true);
 
-	@Override
-	public Boolean updateAccountStatus(Integer id, Boolean status) {
-		
-		Optional<UserDetail> findByUser = userRepository.findById(id);
-		
-		if(findByUser.isPresent()) {
-			
-			UserDetail userDetail = findByUser.get();
-			userDetail.setIsEnable(status);
-			userRepository.save(userDetail);
-			return true;
-			}
-		else {
-		
-		return false;
-	}
-	}
+        String encodePassword = passwordEncoder.encode(user.getPassword());
+        user.setPassword(encodePassword);
+        return userRepository.save(user);
+    }
 
-	@Override
-	public void increaseFailedAttempt(UserDetail user) {
+    @Override
+    public UserDetail getUserByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
 
-		Integer attempt = user.getFailedAttempt()+1;
-		user.setFailedAttempt(attempt);
-		userRepository.save(user);
-	}
+    @Override
+    public List<UserDetail> getUsers(String role) {
+        return userRepository.findByRole(role);
+    }
 
-	@Override
-	public void userAccountLock(UserDetail user) {
-		
-		user.setAccountNonLocked(false);
-		user.setLockTime(new Date());
-		userRepository.save(user);
-		
-	}
+    @Override
+    public Boolean updateAccountStatus(Integer id, Boolean status) {
+        Optional<UserDetail> findByUser = userRepository.findById(id);
+        if (findByUser.isPresent()) {
+            UserDetail userDetail = findByUser.get();
+            userDetail.setIsEnable(status);
+            userRepository.save(userDetail);
+            return true;
+        }
+        return false;
+    }
 
-	@Override
-	public Boolean unlockAccountTimeExpired(UserDetail user) {
-		
-		if (user.getLockTime() == null) {
-	        return false; // Account is not locked, so no need to unlock
-	    }
-		
-		long lockTime = user.getLockTime().getTime();
-		long unlockTime = lockTime + AppConstant.UNLOCK_DURATION_TIME;
-		long currentTime = System.currentTimeMillis();
-		if(unlockTime < currentTime) {
-			user.setAccountNonLocked(true);
-			user.setFailedAttempt(0);
-			user.setLockTime(null);
-			userRepository.save(user);
-			
-			return true;
-		}
-		
-		return false;
-	}
+    @Override
+    public void increaseFailedAttempt(UserDetail user) {
+        Integer attempt = user.getFailedAttempt() + 1;
+        user.setFailedAttempt(attempt);
+        userRepository.save(user);
+    }
 
-	@Override
-	public void resetAttempt(Integer userId) {
+    @Override
+    public void userAccountLock(UserDetail user) {
+        user.setAccountNonLocked(false);
+        user.setLockTime(new Date());
+        userRepository.save(user);
+    }
 
-		
-	}
+    @Override
+    public Boolean unlockAccountTimeExpired(UserDetail user) {
+        if (user.getLockTime() == null) {
+            return false;
+        }
 
-	@Override
-	public void userUpdateUserResetToken(String email, String resetToken) {
+        long lockTime = user.getLockTime().getTime();
+        long unlockTime = lockTime + AppConstant.UNLOCK_DURATION_TIME;
+        long currentTime = System.currentTimeMillis();
 
-		UserDetail findByEmail = userRepository.findByEmail(email);
-		findByEmail.setResetToken(resetToken);
-		userRepository.save(findByEmail);
-		
-	}
+        if (unlockTime < currentTime) {
+            user.setAccountNonLocked(true);
+            user.setFailedAttempt(0);
+            user.setLockTime(null);
+            userRepository.save(user);
+            return true;
+        }
 
-	@Override
-	public UserDetail getUserByToken(String token) {
-		
-		return userRepository.findByresetToken(token);
-	}
+        return false;
+    }
 
-	@Override
-	public UserDetail updateUser(UserDetail user) {
-		return userRepository.save(user);
-	}
+    @Override
+    public void resetAttempt(Integer userId) {
+        // Optional: You can implement logic to reset attempts
+    }
 
-	@Override
-	public UserDetail updateUserProfile(UserDetail user,  MultipartFile img) {
-		
-		UserDetail dbUser = userRepository.findById(user.getId()).get();
-		
-		if(!img.isEmpty()) {
-			dbUser.setProfileImage(img.getOriginalFilename());
-		}
-		
-		if(!ObjectUtils.isEmpty(dbUser)) {
-			
-			dbUser.setUserName(user.getUserName());
-			dbUser.setMobileNumber(user.getMobileNumber());
-			dbUser.setAddress(user.getAddress());
-			dbUser.setCity(user.getCity());
-			dbUser.setState(user.getState());
-			dbUser.setPincode(user.getPincode());
-			dbUser = userRepository.save(dbUser);
-			}
-		try {
-		if(!img.isEmpty()) {
-			File saveFile = new ClassPathResource("static/img").getFile();
-			File profileImgFolder = new File(saveFile, "profile_img");
+    @Override
+    public void userUpdateUserResetToken(String email, String resetToken) {
+        UserDetail user = userRepository.findByEmail(email);
+        user.setResetToken(resetToken);
+        userRepository.save(user);
+    }
 
-			// Create the directory if it does not exist
-			if (!profileImgFolder.exists()) {
-				profileImgFolder.mkdirs(); // This will create the folder if it doesn't exist
-			}
+    @Override
+    public UserDetail getUserByToken(String token) {
+        return userRepository.findByresetToken(token);
+    }
 
-			Path path = Paths.get(saveFile.getAbsolutePath() + File.separator + "profile_img" + File.separator
-					+ img.getOriginalFilename());
-			System.out.println(path);
-			Files.copy(img.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+    @Override
+    public UserDetail updateUser(UserDetail user) {
+        return userRepository.save(user);
+    }
 
+    @Override
+    public UserDetail updateUserProfile(UserDetail user, MultipartFile img) {
+        UserDetail dbUser = userRepository.findById(user.getId()).orElse(null);
 
-		} 
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		return dbUser;
-	}
+        if (!ObjectUtils.isEmpty(dbUser)) {
+            dbUser.setUserName(user.getUserName());
+            dbUser.setMobileNumber(user.getMobileNumber());
+            dbUser.setAddress(user.getAddress());
+            dbUser.setCity(user.getCity());
+            dbUser.setState(user.getState());
+            dbUser.setPincode(user.getPincode());
 
-	@Override
-	public UserDetail saveAdmin(UserDetail user) {
-		
-		user.setRole("ROLE_ADMIN");
-		user.setIsEnable(true);
-		user.setAccountNonLocked(true);
-		user.getFailedAttempt();
-		
-		String encodePassword = passwordEncoder.encode(user.getPassword());
-		user.setPassword(encodePassword);
-		UserDetail saveAdmin = userRepository.save(user);
-		
+            if (!img.isEmpty()) {
+                try {
+                    // ✅ Save to external folder, safe in JAR deployments
+                    String uploadDir = System.getProperty("user.home") + "/app-images/profile_img";
+                    File folder = new File(uploadDir);
 
-		
-		return saveAdmin;
-	}
+                    if (!folder.exists()) {
+                        folder.mkdirs(); // create folder if not exists
+                    }
 
-	@Override
-	public Boolean existsEmail(String email) {
-		
-		Boolean existsByEmail = userRepository.existsByEmail(email);
-		
-		return existsByEmail;
-	}
+                    String fileName = img.getOriginalFilename();
+                    Path filePath = Paths.get(uploadDir + File.separator + fileName);
 
-	
+                    Files.copy(img.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+                    // Save image name to DB
+                    dbUser.setProfileImage(fileName);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            dbUser = userRepository.save(dbUser);
+        }
+
+        return dbUser;
+    }
+
+    @Override
+    public UserDetail saveAdmin(UserDetail user) {
+        user.setRole("ROLE_ADMIN");
+        user.setIsEnable(true);
+        user.setAccountNonLocked(true);
+
+        String encodePassword = passwordEncoder.encode(user.getPassword());
+        user.setPassword(encodePassword);
+        return userRepository.save(user);
+    }
+
+    @Override
+    public Boolean existsEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
 }
