@@ -1,12 +1,13 @@
 package com.ssm.controller;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.Banner.Mode;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -31,7 +32,6 @@ import com.ssm.util.CommonUtil;
 import com.ssm.util.OrderStatus;
 
 import jakarta.mail.MessagingException;
-import jakarta.persistence.criteria.CriteriaBuilder.In;
 import jakarta.servlet.http.HttpSession;
 
 @Controller
@@ -40,213 +40,185 @@ public class UserController {
 
 	@Autowired
 	private IUserDetailService userService;
-	
+
 	@Autowired
 	private ICategoryService categoryService;
-	
+
 	@Autowired
 	private ICartService cartService;
-	
+
 	@Autowired
 	private IOrderService orderService;
-	
+
 	@Autowired
 	private CommonUtil commonUtill;
-	
+
 	@Autowired
 	private PasswordEncoder passwordEncoder;
-	
+
 	@GetMapping("/")
 	public String home() {
-		
-		return"user/home";
+		return "user/home";
 	}
-	
 
 	@ModelAttribute
 	public void getUserDetails(Principal p, Map<String, Object> map) {
-		if(p!=null) {
+		if (p != null) {
 			String email = p.getName();
 			UserDetail userDetail = userService.getUserByEmail(email);
 			map.put("user", userDetail);
 			Integer countCart = cartService.getCountCart(userDetail.getId());
 			map.put("countCart", countCart);
 		}
-		
-
 		List<Category> allActiveCategory = categoryService.getAllActiveCategory();
 		map.put("category", allActiveCategory);
 	}
-	
+
 	@GetMapping("/addCart")
 	public String addToCart(@RequestParam Integer pid, @RequestParam Integer uid, HttpSession session) {
-		
 		Cart saveCart = cartService.saveCart(pid, uid);
-		
-		if(ObjectUtils.isEmpty(saveCart)) {
-			
+		if (ObjectUtils.isEmpty(saveCart)) {
 			session.setAttribute("errorMsg", "Product add to Cart Failed");
-			
 		} else {
 			session.setAttribute("successMsg", "Product added to cart");
-
 		}
-		
-		return"redirect:/product/" + pid;
+		return "redirect:/product/" + pid;
 	}
-	
+
 	@GetMapping("/cart")
-	public String loadCartPage(Principal p, org.springframework.ui.Model m)
-	{
-	
+	public String loadCartPage(Principal p, Model m) {
 		UserDetail user = getLoggedInUserDetails(p);
 		List<Cart> carts = cartService.getCartByUser(user.getId());
-		
 		m.addAttribute("carts", carts);
-		if (carts.size() > 0) {
+		if (!carts.isEmpty()) {
 			Double totalOrderPrice = carts.get(carts.size() - 1).getTotalOrderPrice();
 			m.addAttribute("totalOrderPrice", totalOrderPrice);
 		}
-		return "/user/cart"; 
+		return "/user/cart";
 	}
 
 	@GetMapping("/cartQuantityUpdate")
 	public String updateCartQuantity(@RequestParam String sy, @RequestParam Integer cid) {
-		
-		 cartService.updateQuantity(sy,cid);
-		
+		cartService.updateQuantity(sy, cid);
 		return "redirect:/user/cart";
 	}
 
 	private UserDetail getLoggedInUserDetails(Principal p) {
-		
 		String email = p.getName();
-		UserDetail userDetail = userService.getUserByEmail(email);
-		return userDetail;
+		return userService.getUserByEmail(email);
 	}
-	
+
 	@GetMapping("/orders")
 	public String orderPage(Principal p, Model m) {
-		
 		UserDetail user = getLoggedInUserDetails(p);
 		List<Cart> carts = cartService.getCartByUser(user.getId());
-		
 		m.addAttribute("carts", carts);
-		if (carts.size() > 0) {
+		if (!carts.isEmpty()) {
 			Double orderPrice = carts.get(carts.size() - 1).getTotalOrderPrice();
-
-			Double totalOrderPrice = carts.get(carts.size() - 1).getTotalOrderPrice()+250+100;
+			Double totalOrderPrice = orderPrice + 250 + 100;
 			m.addAttribute("OrderPrice", orderPrice);
-
 			m.addAttribute("totalOrderPrice", totalOrderPrice);
 		}
-		
 		return "/user/order";
 	}
-	
+
 	@PostMapping("/save-order")
 	public String saveOrder(@ModelAttribute OrderRequest request, Principal p) throws Exception {
-		
 		UserDetail user = getLoggedInUserDetails(p);
 		orderService.saveOder(user.getId(), request);
-		
 		return "redirect:/user/success";
 	}
-	
+
 	@GetMapping("/success")
 	public String loadSuccess() {
-		
-		return"/user/success";
+		return "/user/success";
 	}
-	
+
 	@GetMapping("/user-orders")
 	public String myOrder(Map<String, Object> map, Principal p) {
 		UserDetail loginUser = getLoggedInUserDetails(p);
 		List<ProductOrder> orders = orderService.getOrdersByUser(loginUser.getId());
 		map.put("orders", orders);
-		return "/user/my_orders";	
-				}
-	
+		return "/user/my_orders";
+	}
+
 	@GetMapping("/update-status")
-	public String updtaOrderStatus(@RequestParam Integer id, @RequestParam Integer st, HttpSession session) throws UnsupportedEncodingException, MessagingException {
-		
+	public String updtaOrderStatus(@RequestParam Integer id, @RequestParam Integer st, HttpSession session)
+			throws UnsupportedEncodingException, MessagingException {
+
 		OrderStatus[] values = OrderStatus.values();
-		String status=null;
-		
-		for(OrderStatus orderStatus: values) {
-			
-			
-			if(orderStatus.getId().equals(st)) {
-				
-				status= orderStatus.getName();
+		String status = null;
+		for (OrderStatus orderStatus : values) {
+			if (orderStatus.getId().equals(st)) {
+				status = orderStatus.getName();
 			}
 		}
 		ProductOrder updateOrder = orderService.updateOrdersStatus(id, status);
-		
 		commonUtill.sendMailForProductOrder(updateOrder, status);
-		
-		
-		
-		if(ObjectUtils.isEmpty(updateOrder)){
+
+		if (ObjectUtils.isEmpty(updateOrder)) {
 			session.setAttribute("successMsg", "Product Status Updated");
-
-		}
-		else {
+		} else {
 			session.setAttribute("errorMsg", "Status Not Updated");
-
 		}
 		return "redirect:/user/user-orders";
 	}
-	
+
 	@GetMapping("/profile")
 	public String profile() {
-		
-		return"/user/profile";
+		return "/user/profile";
 	}
-	
+
 	@PostMapping("/update-Profile")
-	public String updateProfile(@ModelAttribute UserDetail user, @RequestParam MultipartFile img, HttpSession session) {
-		
-		UserDetail userProfile = userService.updateUserProfile(user, img);
-		if(ObjectUtils.isEmpty(userProfile)) {
-			
-			session.setAttribute("errorMsg", "Profile Not Updated");
-			
-		}
-		else {
-			
-			session.setAttribute("successMsg", "Profile Updated");
-			
+	public String updateProfile(@ModelAttribute UserDetail user,
+								@RequestParam MultipartFile img,
+								HttpSession session) {
+		try {
+			if (!img.isEmpty()) {
+				String uploadDir = System.getProperty("user.home") + "/app-images";
+				File folder = new File(uploadDir);
+				if (!folder.exists()) {
+					folder.mkdirs();
+				}
+				String fileName = img.getOriginalFilename();
+				File filePath = new File(folder, fileName);
+				img.transferTo(filePath);
+				user.setProfileImage(fileName); // Save only name or full path as needed
+			}
+			UserDetail updatedUser = userService.updateUser(user);
+			if (ObjectUtils.isEmpty(updatedUser)) {
+				session.setAttribute("errorMsg", "Profile Not Updated");
+			} else {
+				session.setAttribute("successMsg", "Profile Updated");
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			session.setAttribute("errorMsg", "Error saving profile image");
 		}
 		return "redirect:/user/profile";
 	}
-	
+
 	@PostMapping("/change-password")
-	public String changePassword(@RequestParam String newPassword, @RequestParam String currentPassword, Principal p, HttpSession session) {
-		
+	public String changePassword(@RequestParam String newPassword,
+								 @RequestParam String currentPassword,
+								 Principal p,
+								 HttpSession session) {
+
 		UserDetail loggedInUserDetails = getLoggedInUserDetails(p);
-		
-	boolean matches = passwordEncoder.matches(currentPassword, loggedInUserDetails.getPassword());
-			
-		if(matches) {
-			
-		String encodePassword = passwordEncoder.encode(newPassword);
-		loggedInUserDetails.setPassword(encodePassword);
-		UserDetail updateUser = userService.updateUser(loggedInUserDetails);
-		if(ObjectUtils.isEmpty(updateUser)) {
-			
-			session.setAttribute("errorMsg", "Password not updated || Error in Server");
-		}
-		else {
-			session.setAttribute("successMsg", "Password Updated");
+		boolean matches = passwordEncoder.matches(currentPassword, loggedInUserDetails.getPassword());
 
+		if (matches) {
+			String encodePassword = passwordEncoder.encode(newPassword);
+			loggedInUserDetails.setPassword(encodePassword);
+			UserDetail updateUser = userService.updateUser(loggedInUserDetails);
+			if (ObjectUtils.isEmpty(updateUser)) {
+				session.setAttribute("errorMsg", "Password not updated || Error in Server");
+			} else {
+				session.setAttribute("successMsg", "Password Updated");
+			}
+		} else {
+			session.setAttribute("errorMsg", "Current Password is incorrect");
 		}
-		} 
-		else {
-			session.setAttribute("errorMsg", "Current Password is incorect");
-
-		}
-	
-		return"redirect:/user/profile";
+		return "redirect:/user/profile";
 	}
 }
