@@ -115,34 +115,38 @@ public class AdminController {
 	}
 
 	@PostMapping("/saveCategory")
-	public String saveCategory(@ModelAttribute("category") Category category, @RequestParam("file") MultipartFile file,
-			HttpSession session) throws IOException {
+public String saveCategory(@ModelAttribute("category") Category category, @RequestParam("file") MultipartFile file,
+                           HttpSession session) throws IOException {
 
-		String imageName = file != null ? file.getOriginalFilename() : "default.jpg";
+    String imageName = file != null ? file.getOriginalFilename() : "default.jpg";
+    category.setImageName(imageName);
 
-		category.setImageName(imageName);
+    Boolean existCategory = categoryService.existCategory(category.getName());
 
-		Boolean existCategory = categoryService.existCategory(category.getName());
+    if (existCategory) {
+        session.setAttribute("errorMsg", "Category Name Already Exists");
+    } else {
+        Category saveCategory = categoryService.saveCategory(category);
+        if (ObjectUtils.isEmpty(saveCategory)) {
+            session.setAttribute("Error", "Not Saved Internal Server Error");
+        } else {
+            // ✅ Use absolute external path
+            String uploadDir = "/uploads/category_img";
+            File uploadFolder = new File(uploadDir);
+            if (!uploadFolder.exists()) {
+                uploadFolder.mkdirs(); // create folder if not exists
+            }
 
-		if (existCategory) {
-			session.setAttribute("errorMsg", "Category Name Already Exists");
-		} else {
-			Category saveCategory = categoryService.saveCategory(category);
-			if (ObjectUtils.isEmpty(saveCategory)) {
-				session.setAttribute("Error", "Not Saved Internal Server Error");
-			} else {
-				File saveFile = new ClassPathResource("static/img").getFile();
+            Path path = Paths.get(uploadDir + File.separator + file.getOriginalFilename());
+            Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
 
-				Path path = Paths.get(saveFile.getAbsolutePath() + File.separator + "category_img" + File.separator
-						+ file.getOriginalFilename());
-				System.out.println(path);
-				Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
-				session.setAttribute("successMsg", "Saved Successfully");
-			}
-		}
+            session.setAttribute("successMsg", "Saved Successfully");
+        }
+    }
 
-		return "redirect:/admin/category";
-	}
+    return "redirect:/admin/category";
+}
+
 
 	@GetMapping("/deleteCategory/{id}")
 	public String deleteCategory(@PathVariable Integer id, HttpSession session) {
